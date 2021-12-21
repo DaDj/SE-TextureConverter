@@ -15,7 +15,7 @@ TextureConverter.exe -GamePath -Textureroot -Outpath
 
 **Outpath**: Where the TExtures shall be saved to.
 
-**Textureroot**: relative start Path for the Textures. (sub folderr are automatically included) (relative to GamePath)
+**Textureroot**: relative start Path for the Textures. (sub folders are automatically included) (relative to GamePath)
  
  
  

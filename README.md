@@ -12,8 +12,11 @@ TextureConverter.exe -GamePath -Outpath -Textureroot -Textureroot2 -Textureroot3
 ```
 
 **GamePath**: Space Engineers game folder.
+ - Not .exe folder by main root folder of Space Engineers!
 
-**Outpath**: Where the Textures shall be saved to.
+
+**Outpath**: Where the Textures shall be saved to.#
+  - Any folder you want to export the new images to.
 
 **Textureroot**: relative start Path for the Textures. 
   - (sub folders are automatically included) 

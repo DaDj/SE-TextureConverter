@@ -11,9 +11,11 @@ Includes:
 TextureConverter.exe -GamePath -Textureroot -Outpath 
 ```
 
--GamePath : Space Engineers game folder.
--Outpath: Where the TExtures shall be saved to.
--Textureroot: relative start Path for the Textures. (sub folderr are autmatically included) (relative to GamePath)
+**GamePath**: Space Engineers game folder.
+
+**Outpath**: Where the TExtures shall be saved to.
+
+**Textureroot**: relative start Path for the Textures. (sub folderr are automatically included) (relative to GamePath)
  
  
  

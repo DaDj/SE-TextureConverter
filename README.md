@@ -5,7 +5,10 @@ Includes:
   - Multithreading
   - "Fix" for some texures whose RGB was deleted after conversion (is hacky but meh)
   - excludes skins folder, these aren't moddable anyway
-heavily borrowed code from that UI based thingy: https://github.com/AtlasTheProto/SETextureConverter
+
+
+
+ ✓heavily borrowed code from that UI based thingy: https://github.com/AtlasTheProto/SETextureConverter
 
 ## Usage
 ```

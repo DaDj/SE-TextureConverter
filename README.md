@@ -5,6 +5,7 @@ Includes:
   - Multithreading
   - "Fix" for some texures whose RGB was deleted after conversion (is hacky but meh)
 
+heavily borrowed code from that UI based thingy: https://github.com/AtlasTheProto/SETextureConverter
 
 ## Usage
 ```

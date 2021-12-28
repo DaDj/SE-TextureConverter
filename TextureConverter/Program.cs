@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace TextureConverter
 {
@@ -85,10 +86,25 @@ namespace TextureConverter
                 }
             }
 
-            int currentfiles = 0;
-            int maxfiles = fileList.Length;
-            int current_working = 0;
+            List<String> tmpfileList = new List<String>();
 
+            int i_files2 = 0;
+            for (int i = 0; i < fileList.Length; i++)
+            {
+                var DirName = Path.GetDirectoryName(fileList[i]);
+
+                if (!DirName.Contains("Skins"))
+                {
+                    tmpfileList.Add(fileList[i]);
+                    i_files2++;
+                }
+            }
+            String[] Final_filelist = tmpfileList.ToArray();
+
+            int currentfiles = 0;
+            int maxfiles = Final_filelist.Length;
+            int current_working = 0;
+        
             Console.WriteLine("Files Found:" + maxfiles);
             Console.WriteLine("Starting Conversion:");
 
@@ -96,7 +112,7 @@ namespace TextureConverter
             {
                     Parallel.For(0, maxfiles, new ParallelOptions { MaxDegreeOfParallelism = -1 }, i =>
                 {
-                    var currentFilePath = fileList[i];
+                    var currentFilePath = Final_filelist[i];
                     var DirName = Path.GetDirectoryName(currentFilePath);
                     var relDir = DirName.Replace(gamePath, "");
                     var destDir = outDir + relDir;
@@ -105,7 +121,7 @@ namespace TextureConverter
                     currentfiles++;
 
 
-                    var cmdArgs = string.Format("-ft TIF -if LINEAR -sRGB -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
+                    var cmdArgs = string.Format("-ft TIF -if LINEAR -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
 
                     //Hacky way of fixing these textures which had no RGB after conversion.
                     //It just uses antoher format and ditches the alpha completely in the process. not great really.
@@ -114,6 +130,12 @@ namespace TextureConverter
                         cmdArgs = string.Format("-ft TIF -f B8G8R8X8_UNORM -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
                         //Console.WriteLine(convFileName);
                     }
+                    if (convFileName.Contains("_ng") )
+                    {
+                        cmdArgs = string.Format("-ft TIF -f R8G8B8A8_UNORM -srgbi -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
+                        //Console.WriteLine(convFileName);
+                    }
+
                     var newProcess = StartProcess(toolPath + "\\texconv.exe", cmdArgs);
                     if (newProcess != null)
                     {
@@ -140,8 +162,8 @@ namespace TextureConverter
             if (args.Length == 0 || args.Length < 3)
             {
                 Console.WriteLine("No valid Input arguments given. press any key to close...");
-                Console.ReadKey();
-                return 4; //return 2 is wrong arguments count 
+             //   Console.ReadKey();
+                return 4; 
             }
 
             string gamePath = args[0];
@@ -169,7 +191,7 @@ namespace TextureConverter
             TimeSpan ts = stopWatch.Elapsed;
             string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}", ts.Hours, ts.Minutes, ts.Seconds, ts.Milliseconds / 10);
             Console.WriteLine("RunTime " + elapsedTime);
-            Console.ReadKey();
+            //Console.ReadKey();
 
             //return 2 is sucess return, not using 0 for reasons :)
             return 2;

@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TextureConverter
 {
@@ -34,7 +35,23 @@ namespace TextureConverter
             return null;
         }
 
-        public static void StartConversion(string gamePath, string outDir, string toolPath,string[] Items)
+        public static bool IsFileNew(string GameFilePath, string ConvertedFilePath)
+        {
+            if (!File.Exists(ConvertedFilePath))
+                 return true; //Converted File doesn't exist --> Gamefile is new
+
+            DateTime Date_GameFile = File.GetLastWriteTime(GameFilePath);
+            DateTime Date_ConvertedFile = File.GetLastWriteTime(ConvertedFilePath);
+
+            int result = DateTime.Compare(Date_GameFile, Date_ConvertedFile);
+            if(result > 0)
+                return true; //Gamefile is newer than converted --> convert!
+            else
+                return false;
+        }
+
+
+        public static string[] GetFileList(string gamePath, string[] Items)
         {
             var count = 0;
             foreach (string obj in Items)
@@ -100,7 +117,30 @@ namespace TextureConverter
                 }
             }
             String[] Final_filelist = tmpfileList.ToArray();
+            return Final_filelist;
+        }
 
+        public static string GetTexConvCmdLine(string convFileName,string currentFilePath,string destDir)
+        {
+            var cmdArgs = string.Format("-ft TIF -if LINEAR -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
+            //Hacky way of fixing these textures which had no RGB after conversion.
+            //It just uses antoher format and ditches the alpha completely in the process. not great really.
+            if (convFileName.Contains("terminal_panel_cm") || convFileName.Contains("Emissive") || convFileName.Contains("LCD") || convFileName.Contains("ProgramingBlock_cm"))
+            {
+                cmdArgs = string.Format("-ft TIF -f B8G8R8X8_UNORM -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
+            }
+            if (convFileName.Contains("_ng"))
+            {
+                cmdArgs = string.Format("-ft TIF -f R8G8B8A8_UNORM -srgbi -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
+            }
+
+            return cmdArgs;
+        }
+
+        public static void StartConversion(string gamePath, string outDir, string toolPath,string[] Items, bool updateOnly)
+        {
+
+            string[] Final_filelist = GetFileList(gamePath, Items);
             int currentfiles = 0;
             int maxfiles = Final_filelist.Length;
             int current_working = 0;
@@ -110,42 +150,41 @@ namespace TextureConverter
 
             using (var progress = new ProgressBar())
             {
-                    Parallel.For(0, maxfiles, new ParallelOptions { MaxDegreeOfParallelism = -1 }, i =>
+                Parallel.For(0, maxfiles, new ParallelOptions { MaxDegreeOfParallelism = -1 }, i =>
                 {
                     var currentFilePath = Final_filelist[i];
                     var DirName = Path.GetDirectoryName(currentFilePath);
                     var relDir = DirName.Replace(gamePath, "");
                     var destDir = outDir + relDir;
                     var convFileName = Path.GetFileName(currentFilePath);
+                
                     Directory.CreateDirectory(destDir);
                     currentfiles++;
 
+                    var DestFilename = destDir + "\\" + Path.GetFileNameWithoutExtension(currentFilePath) + ".tif";
 
-                    var cmdArgs = string.Format("-ft TIF -if LINEAR -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
-
-                    //Hacky way of fixing these textures which had no RGB after conversion.
-                    //It just uses antoher format and ditches the alpha completely in the process. not great really.
-                    if (convFileName.Contains("terminal_panel_cm") || convFileName.Contains("Emissive") || convFileName.Contains("LCD") || convFileName.Contains("ProgramingBlock_cm"))
+                    if (IsFileNew(currentFilePath, DestFilename) || !updateOnly)
                     {
-                        cmdArgs = string.Format("-ft TIF -f B8G8R8X8_UNORM -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
-                        //Console.WriteLine(convFileName);
+                        var cmdArgs = GetTexConvCmdLine(convFileName, currentFilePath, destDir);
+
+                        var newProcess = StartProcess(toolPath + "\\texconv.exe", cmdArgs);
+                        if (newProcess != null)
+                        {
+                            newProcess.WaitForExit();
+                            Interlocked.Increment(ref current_working);
+                            double myprogress = (float)current_working / (float)maxfiles;
+                            progress.Report(myprogress);
+                            // Console.WriteLine(current_working + "/" + maxfiles + "| " + progress);
+                            // consoleBuffer.Enqueue("Converting: " + convFileName + " (" + current_working + "/" + maxfiles + ")");
+                        }
                     }
-                    if (convFileName.Contains("_ng") )
+                    else
                     {
-                        cmdArgs = string.Format("-ft TIF -f R8G8B8A8_UNORM -srgbi -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
-                        //Console.WriteLine(convFileName);
-                    }
-
-                    var newProcess = StartProcess(toolPath + "\\texconv.exe", cmdArgs);
-                    if (newProcess != null)
-                    {
-                        newProcess.WaitForExit();
                         Interlocked.Increment(ref current_working);
-                        double myprogress = (float)current_working /(float)maxfiles;
+                        double myprogress = (float)current_working / (float)maxfiles;
                         progress.Report(myprogress);
-                        // Console.WriteLine(current_working + "/" + maxfiles + "| " + progress);
-                        // consoleBuffer.Enqueue("Converting: " + convFileName + " (" + current_working + "/" + maxfiles + ")");
                     }
+                  
                 }
                 );
             }
@@ -170,19 +209,37 @@ namespace TextureConverter
             string outDir = args[1];
             string[] TextureRoot = new string[args.Length - 2];
             Array.Copy(args, 2, TextureRoot,0, args.Length-2);
+
+            List<string> TextureRoot2 = TextureRoot.ToList();
+            for (int i = 0; i < TextureRoot2.Count; i++)
+            {
+                if ((TextureRoot2[i].ToLower()).Equals("-updateonly"))
+                    TextureRoot2.RemoveAt(i);
+            }
+            TextureRoot = TextureRoot2.ToArray();
+
+
             string toolPath = strWorkPath;
+            bool UpdateOnly = false;
+            foreach (var item in args)
+            {
+                var tmpstring = item.ToLower();
+                UpdateOnly = tmpstring.Equals("-updateonly");
+            }
+
 
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
 
             Console.WriteLine("GamePath:    " + gamePath);
-            Console.WriteLine("TextureRoot: " + "todo");
+            Console.WriteLine("TextureRoot: " + string.Join("", TextureRoot));
             Console.WriteLine("outDir:      " + outDir);
+            Console.WriteLine("UpdateOnly:  " + UpdateOnly);
             Console.WriteLine("###########################################");
          
             // Console.ReadKey();
-            StartConversion(gamePath, outDir, toolPath, TextureRoot);
+            StartConversion(gamePath, outDir, toolPath, TextureRoot,UpdateOnly);
 
 
             //just the runtime stuff

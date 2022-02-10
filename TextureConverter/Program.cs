@@ -122,13 +122,14 @@ namespace TextureConverter
 
         public static string GetTexConvCmdLine(string convFileName,string currentFilePath,string destDir)
         {
-            var cmdArgs = string.Format("-ft TIF -if LINEAR -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
+            var cmdArgs = string.Format("-ft TIF  -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
             //Hacky way of fixing these textures which had no RGB after conversion.
             //It just uses antoher format and ditches the alpha completely in the process. not great really.
-            if (convFileName.Contains("terminal_panel_cm") || convFileName.Contains("Emissive") || convFileName.Contains("LCD") || convFileName.Contains("ProgramingBlock_cm"))
-            {
-                cmdArgs = string.Format("-ft TIF -f B8G8R8X8_UNORM -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
-            }
+            //paintability is bugged through this! NEED to find a better way
+            //if (convFileName.Contains("terminal_panel") || convFileName.Contains("Emissive") || convFileName.Contains("LCD") || convFileName.Contains("ProgramingBlock"))
+            //{
+            //    cmdArgs = string.Format("-ft TIF -f B8G8R8X8_UNORM -srgbi -sepalpha  -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
+            //}
             if (convFileName.Contains("_ng"))
             {
                 cmdArgs = string.Format("-ft TIF -f R8G8B8A8_UNORM -srgbi -y -o \"{0}\" \"{1}\"", destDir, currentFilePath);
